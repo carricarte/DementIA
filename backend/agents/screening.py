@@ -1,0 +1,47 @@
+from __future__ import annotations
+
+from backend.llm import get_llm
+from backend.state.schema import GraphState
+from backend.tools.retrieval import retrieve
+
+_SYSTEM = """You are a dementia screening specialist.
+Interpret cognitive assessment scores, recommend further workup, and flag patients for
+specialist referral. Base every recommendation on AAN guidelines and AWMF 038-013.
+Cite every factual claim with [Source: title]."""
+
+
+def run_screening(state: GraphState) -> GraphState:
+    record = state["patient_record"]
+    ctx = retrieve(state["query"], source_filter=["aan", "awmf", "alz"])
+
+    scores = record.screening_scores.model_dump(exclude_none=True)
+    history = _format_history(state)
+
+    prompt = f"""{_SYSTEM}
+
+Patient history:
+{history}
+
+Current screening scores: {scores or "none recorded"}
+Risk flags: {record.risk_flags or "none"}
+Pending workups: {record.pending_workups or "none"}
+
+Retrieved evidence:
+{ctx["text"] or "(knowledge base not yet populated)"}
+
+Physician query: {state["query"]}
+
+Provide a structured clinical assessment with recommendations."""
+
+    response = get_llm().invoke(prompt)
+    return {**state, "specialist_response": response.content, "citations": ctx["citations"]}
+
+
+def _format_history(state: GraphState) -> str:
+    visits = state["patient_record"].visits
+    if not visits:
+        return "No prior visits."
+    return "\n".join(
+        f"[{v.timestamp.date()} | {v.stage.value}] {v.query[:120]}"
+        for v in visits[-5:]
+    )
