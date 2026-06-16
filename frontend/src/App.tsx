@@ -103,7 +103,7 @@ export default function App() {
             visits={record?.visits ?? []}
             onSelect={handleVisitSelect}
           />
-          <main className="flex-1 overflow-y-auto">
+          <main className="flex-1 overflow-hidden">
             <QueryPanel
               onQuery={handleQuery}
               isLoading={isLoading}
