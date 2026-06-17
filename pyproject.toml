@@ -3,9 +3,9 @@ requires = ["hatchling"]
 build-backend = "hatchling.build"
 
 [project]
-name = "dca"
+name = "dementia"
 version = "0.1.0"
-description = "Dementia Clinical Assistant — multi-agent clinical decision support"
+description = "DementIA — AI-powered dementia clinical decision support"
 requires-python = ">=3.11"
 dependencies = [
     "langgraph>=0.2",

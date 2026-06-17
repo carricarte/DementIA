@@ -1,4 +1,4 @@
-"""End-to-end tests for the DCA API.
+"""End-to-end tests for the DementIA API.
 
 Tiers (controlled by markers):
   (no marker)   — structural only; no LLM, no knowledge base; always fast

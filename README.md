@@ -1,4 +1,4 @@
-# DementAI — Dementia Clinical Assistant
+# DementIA — AI-powered dementia clinical decision support
 
 A multi-agent clinical decision support system for dementia care. A coordinator agent classifies each query by clinical stage and routes it to the appropriate specialist, which retrieves evidence from a medical knowledge base and responds via Claude Opus.
 
@@ -16,7 +16,7 @@ Coordinator (LangGraph)
 └─────────────┴────────────┴─────────────┴──────────┴──────────┘
     │  each specialist retrieves from LanceDB, calls Claude Opus
     ▼
-Merged response + citations
+Streamed response + numbered citations
     │
     ▼
 Patient record updated → Audit log
@@ -42,7 +42,7 @@ Patient record updated → Audit log
 | Treatment | Treatment | PubMed, ClinicalTrials, AWMF |
 | Care | Patient Care | Alz.org, AAN |
 
-Knowledge base currently populated: **AWMF S3-Leitlinie Demenzen** (038-013, v6.1 2026) — 2,771 chunks from the Langfassung and Methodenreport.
+Knowledge base currently populated: **AWMF S3-Leitlinie Demenzen** (038-013, v6.1 2026) + **PubMed** — 6,901 chunks across 5 clinical stages.
 
 ## Setup
 
@@ -55,8 +55,8 @@ Knowledge base currently populated: **AWMF S3-Leitlinie Demenzen** (038-013, v6.
 ### 1. Clone and install
 
 ```bash
-git clone git@github.com:carricarte/dementAI.git
-cd dementAI
+git clone git@github.com:carricarte/DementIA.git
+cd DementIA
 
 # Python backend
 python -m venv .venv
@@ -78,9 +78,10 @@ cp .env.example .env
 
 ```bash
 python scripts/ingest.py --source awmf
+python scripts/ingest.py --source pubmed
 ```
 
-This downloads the AWMF S3-Leitlinie Demenzen PDF (~3 MB), chunks and embeds it into LanceDB. Runtime: ~5 min on first run (downloads the PubMedBERT embedding model).
+Runtime: ~5 min on first run (downloads the PubMedBERT embedding model).
 
 ## Running
 
@@ -99,17 +100,19 @@ Open **http://localhost:3000**, enter a patient ID, and submit a clinical query.
 ## Project structure
 
 ```
-dementAI/
+DementIA/
 ├── backend/
 │   ├── agents/          # LangGraph specialist agents + coordinator
 │   ├── api/             # FastAPI routes and Pydantic models
 │   ├── audit/           # Immutable audit log writer
 │   ├── rag/
 │   │   ├── embedder.py  # PubMedBERT sentence-transformers wrapper
-│   │   ├── retriever.py # LanceDB vector search
+│   │   ├── retriever.py # LanceDB vector + hybrid + rerank search
+│   │   ├── chunker.py   # Token-aware sentence chunker (512 tokens)
 │   │   ├── ingestion.py # Common Document schema + ingest()
 │   │   └── sources/
-│   │       └── awmf.py  # AWMF REST API downloader + PDF chunker
+│   │       ├── awmf.py  # AWMF REST API downloader + PDF chunker
+│   │       └── pubmed.py # NCBI E-utilities fetcher
 │   ├── state/
 │   │   ├── schema.py    # GraphState, PatientRecord, Citation types
 │   │   └── store.py     # Patient JSON persistence
@@ -122,13 +125,13 @@ dementAI/
 ├── frontend/
 │   └── src/
 │       ├── App.tsx              # Root component; all state lives here
-│       ├── api/client.ts        # fetchPatient(), submitQuery()
+│       ├── api/client.ts        # fetchPatient(), streamQuery()
 │       ├── types/index.ts       # TypeScript interfaces (mirrors Pydantic models)
 │       └── components/
-│           ├── QueryPanel.tsx   # Query input + Markdown response
+│           ├── QueryPanel.tsx   # Query input + streaming Markdown response
 │           ├── VisitHistory.tsx # Left sidebar: past visits
 │           ├── PatientProfile.tsx # Right sidebar: patient record
-│           ├── CitationList.tsx # Sources section
+│           ├── CitationList.tsx # Numbered references section
 │           └── StageBadge.tsx   # Clinical stage chip
 ├── scripts/
 │   └── ingest.py        # CLI: populate LanceDB from each source
@@ -142,8 +145,6 @@ dementAI/
 1. Create `backend/rag/sources/{source}.py` with a `fetch() -> list[Document]` function
 2. Wire it into `scripts/ingest.py`
 3. Run `python scripts/ingest.py --source {source}`
-
-Sources planned but not yet implemented: PubMed, ClinicalTrials.gov, Neurology.org, Alz.org, AAN.
 
 ## Dementia types supported
 

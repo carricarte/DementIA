@@ -31,7 +31,7 @@ AWMF_TARGETS: dict[str, str] = {
 _API_BASE = "https://leitlinien-api.awmf.org/v1/"
 _API_KEY = "MkI5Y1VIOEJ0ZGpoelNBVXRNM1E6WVFld0pBUF9RLVdJa012UHVPTmRQUQ=="
 _ASSETS_BASE = "https://register.awmf.org/assets/guidelines/"
-_UA = "DCA-Research-Bot/1.0 (academic dementia research)"
+_UA = "DementIA-Research-Bot/1.0 (academic dementia research)"
 _DEFAULT_DIR = Path("data/sources/awmf")
 
 # Document types to ingest from the API links list (in preference order)

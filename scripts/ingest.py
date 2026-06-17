@@ -1,5 +1,5 @@
 """
-Ingest documents into the DCA knowledge base (LanceDB).
+Ingest documents into the DementIA knowledge base (LanceDB).
 
 Usage:
     python scripts/ingest.py --source awmf

@@ -3,7 +3,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from backend.api.routes import patient, query
 
-app = FastAPI(title="DCA — Dementia Clinical Assistant", version="0.1.0")
+app = FastAPI(title="DementIA", version="0.1.0")
 
 app.add_middleware(
     CORSMiddleware,

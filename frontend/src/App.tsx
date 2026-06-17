@@ -78,8 +78,8 @@ export default function App() {
       {/* ── Header ─────────────────────────────────────────────── */}
       <header className="bg-slate-900 text-white px-6 py-3 flex items-center gap-8 shadow-lg shrink-0">
         <div className="shrink-0">
-          <p className="text-base font-semibold tracking-tight leading-none">DCA</p>
-          <p className="text-xs text-slate-400 mt-0.5">Dementia Clinical Assistant</p>
+          <p className="text-base font-semibold tracking-tight leading-none">Dement<span className="text-blue-400">IA</span></p>
+          <p className="text-xs text-slate-400 mt-0.5">Clinical Decision Support</p>
         </div>
 
         <div className="flex items-center gap-2">

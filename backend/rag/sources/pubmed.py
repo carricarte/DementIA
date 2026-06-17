@@ -1,4 +1,4 @@
-"""PubMed E-utilities fetcher for the DCA knowledge base.
+"""PubMed E-utilities fetcher for the DementIA knowledge base.
 
 Reads search queries from backend/rag/pubmed_queries.toml, fetches matching
 articles via NCBI E-utilities, and returns chunked Documents ready for LanceDB.
@@ -24,7 +24,7 @@ from backend.rag.ingestion import Document, make_id
 
 _BASE = "https://eutils.ncbi.nlm.nih.gov/entrez/eutils/"
 # NCBI requires a contact email in the User-Agent for automated scripts.
-_UA = "DCA-Research-Bot/1.0 (tcarricarte@gmail.com)"
+_UA = "DementIA-Research-Bot/1.0 (tcarricarte@gmail.com)"
 _DELAY = 0.4  # seconds between requests — stays under 3 req/sec limit
 _BATCH_SIZE = 100  # PMIDs per efetch call (NCBI max)
 

@@ -1,4 +1,4 @@
-"""Token-aware, sentence-boundary chunker for DCA knowledge ingestion.
+"""Token-aware, sentence-boundary chunker for DementIA knowledge ingestion.
 
 Uses the embedding model's own tokenizer so chunk sizes are exact token counts,
 not character estimates. Sentences are kept intact wherever possible; only
