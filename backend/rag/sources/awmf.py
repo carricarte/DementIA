@@ -19,6 +19,7 @@ from pathlib import Path
 
 import httpx
 
+from backend.rag.chunker import chunker
 from backend.rag.ingestion import Document, make_id
 
 # Register number → canonical title
@@ -35,9 +36,6 @@ _DEFAULT_DIR = Path("data/sources/awmf")
 
 # Document types to ingest from the API links list (in preference order)
 _INGEST_TYPES = {"longVersion", "guidelineReport"}
-
-CHUNK_SIZE = 1000  # characters; within MedCPT's 512-token limit
-CHUNK_OVERLAP = 150  # overlap between consecutive chunks
 
 
 # ---------------------------------------------------------------------------
@@ -102,45 +100,38 @@ def _download_pdf(url: str, dest: Path) -> Path:
 
 
 def _extract_pages(pdf_path: Path) -> list[tuple[int, str]]:
-    """Return (page_number, text) for each content-bearing page."""
+    """Return (page_number, text) for each content-bearing page.
+
+    Preserves sentence-ending newlines so the chunker can split on them.
+    Only collapses horizontal whitespace (spaces/tabs) and mid-word hyphens.
+    """
     from pypdf import PdfReader  # optional [ingest] dep
 
     reader = PdfReader(str(pdf_path))
     pages = []
     for i, page in enumerate(reader.pages, start=1):
         raw = page.extract_text() or ""
-        # Dehyphenate: German PDFs break words at line-end with hyphen
-        text = re.sub(r"-\n", "", raw)
-        text = re.sub(r"\s+", " ", text).strip()
+        text = re.sub(r"-\n", "", raw)  # dehyphenate line-end hyphens
+        text = re.sub(r"[ \t]+", " ", text)  # collapse spaces/tabs only
+        text = re.sub(r"\n{3,}", "\n\n", text)  # normalise excessive blank lines
+        text = text.strip()
         if len(text) > 80:
             pages.append((i, text))
     return pages
 
 
-def _chunk_pages(
-    pages: list[tuple[int, str]],
-    chunk_size: int = CHUNK_SIZE,
-    overlap: int = CHUNK_OVERLAP,
-) -> list[tuple[int, int, str]]:
-    """Yield (page_number, chunk_index, text) across all pages."""
-    chunks: list[tuple[int, int, str]] = []
+def _chunk_pages(pages: list[tuple[int, str]]) -> list[tuple[int, int, str]]:
+    """Chunk all pages with the token-aware sentence chunker.
+
+    Returns (page_number, chunk_index, text); chunk_index is global across pages.
+    """
+    result: list[tuple[int, int, str]] = []
     chunk_idx = 0
     for page_num, text in pages:
-        pos = 0
-        while pos < len(text):
-            end = min(pos + chunk_size, len(text))
-            if end < len(text):
-                for sep in ("\n\n", "\n", ". ", " "):
-                    cut = text.rfind(sep, pos + overlap, end)
-                    if cut != -1:
-                        end = cut + len(sep)
-                        break
-            chunk = text[pos:end].strip()
-            if chunk:
-                chunks.append((page_num, chunk_idx, chunk))
-                chunk_idx += 1
-            pos = end - overlap if end < len(text) else end
-    return chunks
+        for chunk_text in chunker.chunk(text):
+            result.append((page_num, chunk_idx, chunk_text))
+            chunk_idx += 1
+    return result
 
 
 def _year_from_filename(name: str) -> int:

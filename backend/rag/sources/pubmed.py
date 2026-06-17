@@ -19,6 +19,7 @@ from pathlib import Path
 
 import httpx
 
+from backend.rag.chunker import chunker
 from backend.rag.ingestion import Document, make_id
 
 _BASE = "https://eutils.ncbi.nlm.nih.gov/entrez/eutils/"
@@ -28,9 +29,6 @@ _DELAY = 0.4  # seconds between requests — stays under 3 req/sec limit
 _BATCH_SIZE = 100  # PMIDs per efetch call (NCBI max)
 
 _DEFAULT_QUERIES_FILE = Path(__file__).parent.parent / "pubmed_queries.toml"
-
-CHUNK_SIZE = 1000
-CHUNK_OVERLAP = 150
 
 
 # ── NCBI API helpers ────────────────────────────────────────────────────────
@@ -145,29 +143,6 @@ def _parse_article(el: ET.Element) -> dict | None:
     }
 
 
-# ── Chunking ────────────────────────────────────────────────────────────────
-
-
-def _chunk(text: str, size: int = CHUNK_SIZE, overlap: int = CHUNK_OVERLAP) -> list[str]:
-    if len(text) <= size:
-        return [text]
-    chunks: list[str] = []
-    pos = 0
-    while pos < len(text):
-        end = min(pos + size, len(text))
-        if end < len(text):
-            for sep in ("\n\n", "\n", ". ", " "):
-                cut = text.rfind(sep, pos + overlap, end)
-                if cut != -1:
-                    end = cut + len(sep)
-                    break
-        chunk = text[pos:end].strip()
-        if chunk:
-            chunks.append(chunk)
-        pos = end - overlap if end < len(text) else end
-    return chunks
-
-
 # ── Public entry point ──────────────────────────────────────────────────────
 
 
@@ -235,7 +210,7 @@ def fetch(queries_file: Path | None = None) -> list[Document]:
                     parsed["title"][:70] + "…" if len(parsed["title"]) > 70 else parsed["title"]
                 )
                 full_text = parsed["abstract"]  # title prepended by ingest(); no duplication
-                chunks = _chunk(full_text)
+                chunks = chunker.chunk(full_text)
                 print(
                     f"      [{art_idx}/{len(articles)}] PMID {parsed['pmid']} "
                     f"→ {len(chunks)} chunk(s)  {title_short}",
