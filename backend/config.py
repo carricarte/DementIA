@@ -17,5 +17,11 @@ class Settings(BaseSettings):
     embed_model: str = "neuml/pubmedbert-base-embeddings"
     retrieval_top_k: int = 20
 
+    # Search strategy: vector | fts | hybrid | hybrid_rerank
+    # hybrid_rerank = hybrid (vector+FTS RRF) then cross-encoder rerank
+    search_strategy: str = "hybrid_rerank"
+    # Cross-encoder model for reranking (sentence-transformers model ID)
+    rerank_model: str = "cross-encoder/ms-marco-MiniLM-L-6-v2"
+
 
 settings = Settings()

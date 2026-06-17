@@ -139,4 +139,19 @@ def ingest(documents: list[Document], drop_existing: bool = False) -> int:
     print(f"  embedding done: {total} chunks{'': <40}", flush=True)
 
     tbl.add(rows)
+
+    # Rebuild FTS index so new chunks are immediately searchable.
+    print("  rebuilding FTS index ...", flush=True)
+    try:
+        tbl.create_fts_index(
+            "text",
+            replace=True,
+            stem=True,
+            remove_stop_words=True,
+            language="English",
+        )
+        print("  FTS index ready", flush=True)
+    except Exception as e:
+        print(f"  FTS index warning: {e}", flush=True)
+
     return total
