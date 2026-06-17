@@ -2,13 +2,14 @@ from __future__ import annotations
 
 from backend.llm import get_llm
 from backend.prompts import load
-from backend.state.schema import GraphState
+from backend.state.schema import Citation, GraphState
 from backend.tools.retrieval import retrieve
 
 _SYSTEM = load("diagnosis")
 
 
-def run_diagnosis(state: GraphState) -> GraphState:
+def prepare(state: GraphState) -> tuple[str, list[Citation]]:
+    """Returns (prompt, citations) without invoking the LLM."""
     record = state["patient_record"]
     ctx = retrieve(state["query"], source_filter=["pubmed", "neurology", "awmf"])
 
@@ -34,8 +35,13 @@ Physician query: {state["query"]}
 Provide a diagnostic assessment. If a subtype can be suggested, name it and rate your
 confidence (low / moderate / high) with supporting evidence."""
 
+    return prompt, ctx["citations"]
+
+
+def run_diagnosis(state: GraphState) -> GraphState:
+    prompt, citations = prepare(state)
     response = get_llm().invoke(prompt)
-    return {**state, "specialist_response": response.content, "citations": ctx["citations"]}
+    return {**state, "specialist_response": response.content, "citations": citations}
 
 
 def _format_history(state: GraphState) -> str:
@@ -43,6 +49,5 @@ def _format_history(state: GraphState) -> str:
     if not visits:
         return "No prior visits."
     return "\n".join(
-        f"[{v.timestamp.date()} | {v.stage.value}] {v.query[:120]}"
-        for v in visits[-5:]
+        f"[{v.timestamp.date()} | {v.stage.value}] {v.query[:120]}" for v in visits[-5:]
     )

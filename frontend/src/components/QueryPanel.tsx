@@ -7,16 +7,17 @@ import CitationList from './CitationList'
 interface Props {
   onQuery: (query: string) => Promise<void>
   isLoading: boolean
+  isStreaming: boolean
   response: QueryResponse | null
   selectedVisit: VisitRecord | null
   error: string | null
 }
 
-export default function QueryPanel({ onQuery, isLoading, response, selectedVisit, error }: Props) {
+export default function QueryPanel({ onQuery, isLoading, isStreaming, response, selectedVisit, error }: Props) {
   const [query, setQuery] = useState('')
 
   const handleSubmit = async () => {
-    if (!query.trim() || isLoading) return
+    if (!query.trim() || isLoading || isStreaming) return
     await onQuery(query.trim())
     setQuery('')
   }
@@ -56,7 +57,7 @@ export default function QueryPanel({ onQuery, isLoading, response, selectedVisit
           )}
 
           {/* Response / selected visit */}
-          {!isLoading && displayed && (
+          {(isStreaming || (!isLoading && displayed)) && displayed && (
             <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-6">
               <div className="flex items-center justify-between mb-4">
                 <StageBadge stage={displayed.stage} />
@@ -72,7 +73,21 @@ export default function QueryPanel({ onQuery, isLoading, response, selectedVisit
                   h2: ({ children }) => <h2 className="text-base font-semibold text-slate-800 mt-4 mb-1.5 first:mt-0">{children}</h2>,
                   h3: ({ children }) => <h3 className="text-sm font-semibold text-slate-700 mt-3 mb-1 first:mt-0">{children}</h3>,
                   p: ({ children }) => <p className="text-sm text-slate-700 leading-relaxed mb-2">{children}</p>,
-                  strong: ({ children }) => <strong className="font-semibold text-slate-900">{children}</strong>,
+                  strong: ({ children }) => {
+                    const text = typeof children === 'string' ? children : Array.isArray(children) ? children.join('') : ''
+                    if (/^\[\d+\]$/.test(text)) {
+                      const n = text.slice(1, -1)
+                      return (
+                        <a
+                          href={`#ref-${n}`}
+                          className="inline-block text-xs font-semibold text-blue-600 bg-blue-50 border border-blue-200 rounded px-1 py-0.5 hover:bg-blue-100 transition-colors mx-0.5 no-underline"
+                        >
+                          {text}
+                        </a>
+                      )
+                    }
+                    return <strong className="font-semibold text-slate-900">{children}</strong>
+                  },
                   em: ({ children }) => <em className="italic">{children}</em>,
                   ul: ({ children }) => <ul className="text-sm text-slate-700 list-disc list-outside ml-4 mb-2 space-y-0.5">{children}</ul>,
                   ol: ({ children }) => <ol className="text-sm text-slate-700 list-decimal list-outside ml-4 mb-2 space-y-0.5">{children}</ol>,
@@ -83,8 +98,11 @@ export default function QueryPanel({ onQuery, isLoading, response, selectedVisit
                   a: ({ href, children }) => <a href={href} target="_blank" rel="noreferrer" className="text-blue-600 hover:underline">{children}</a>,
                 }}
               >
-                {displayed.response}
+                {injectCitationMarkers(displayed.response)}
               </ReactMarkdown>
+              {isStreaming && !selectedVisit && (
+                <span className="inline-block w-0.5 h-4 bg-slate-500 animate-pulse align-middle ml-0.5" />
+              )}
               <CitationList citations={displayed.citations} />
             </div>
           )}
@@ -109,14 +127,19 @@ export default function QueryPanel({ onQuery, isLoading, response, selectedVisit
           <div className="px-5 py-3 border-t border-slate-100 flex items-center justify-between">
             <span className="text-xs text-slate-400">⌘ Enter to submit</span>
             <button
-              disabled={isLoading || !query.trim()}
+              disabled={isLoading || isStreaming || !query.trim()}
               onClick={handleSubmit}
               className="bg-slate-900 hover:bg-slate-700 disabled:opacity-40 disabled:cursor-not-allowed text-white text-sm px-5 py-2 rounded-lg transition-colors font-medium"
             >
               {isLoading ? (
                 <span className="flex items-center gap-2">
                   <Spinner />
-                  Consulting…
+                  Thinking…
+                </span>
+              ) : isStreaming ? (
+                <span className="flex items-center gap-2">
+                  <Spinner />
+                  Writing…
                 </span>
               ) : (
                 'Ask'
@@ -128,6 +151,12 @@ export default function QueryPanel({ onQuery, isLoading, response, selectedVisit
 
     </div>
   )
+}
+
+// Wrap bare [N] citation markers in **bold** so ReactMarkdown's strong
+// component can intercept them and render as anchor badges.
+function injectCitationMarkers(text: string): string {
+  return text.replace(/\[(\d+)\]/g, '**[$1]**')
 }
 
 function Spinner() {

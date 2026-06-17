@@ -106,25 +106,29 @@ class KnowledgeRetriever:
         else:
             candidates = candidates[:k]
 
-        chunks = [row["text"] for row in candidates]
-
-        seen_cite: set[tuple[str, str]] = set()
+        # Assign each unique (source, title) a citation number in ranked order.
+        cite_num: dict[tuple[str, str], int] = {}
         citations: list[Citation] = []
         for row in candidates:
             key = (row["source"], row["title"])
-            if key in seen_cite:
-                continue
-            seen_cite.add(key)
-            citations.append(
-                Citation(
-                    source=row["source"],
-                    title=row["title"],
-                    url=row.get("url") or None,
-                    pmid=row.get("pmid") or None,
+            if key not in cite_num:
+                n = len(cite_num) + 1
+                cite_num[key] = n
+                citations.append(
+                    Citation(
+                        source=row["source"],
+                        title=row["title"],
+                        url=row.get("url") or None,
+                        pmid=row.get("pmid") or None,
+                    )
                 )
-            )
 
-        return "\n\n---\n\n".join(chunks), citations
+        # Prefix each chunk with its citation number so the LLM can inline-cite.
+        numbered = [
+            f"[{cite_num[(row['source'], row['title'])]}] {row['text']}" for row in candidates
+        ]
+
+        return "\n\n---\n\n".join(numbered), citations
 
     # ── private search helpers ─────────────────────────────────────────────
 

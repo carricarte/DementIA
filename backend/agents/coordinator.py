@@ -1,5 +1,8 @@
 from __future__ import annotations
 
+import json
+from typing import Iterator
+
 from langgraph.graph import END, StateGraph
 
 from backend.audit.logger import audit_logger
@@ -8,6 +11,11 @@ from backend.prompts import load
 from backend.state.schema import ClinicalStage, GraphState, PatientRecord, VisitRecord
 from backend.state.store import patient_store
 
+from . import care as _care
+from . import diagnosis as _diagnosis
+from . import prevention as _prevention
+from . import screening as _screening
+from . import treatment as _treatment
 from .care import run_care
 from .diagnosis import run_diagnosis
 from .prevention import run_prevention
@@ -59,6 +67,69 @@ def save_state(state: GraphState) -> GraphState:
 def audit_log(state: GraphState) -> GraphState:
     audit_logger.log(state)
     return state
+
+
+_PREPARE_MAP = {
+    ClinicalStage.SCREENING: lambda s: _screening.prepare(s),
+    ClinicalStage.DIAGNOSIS: lambda s: _diagnosis.prepare(s),
+    ClinicalStage.PREVENTION: lambda s: _prevention.prepare(s),
+    ClinicalStage.TREATMENT: lambda s: _treatment.prepare(s),
+    ClinicalStage.CARE: lambda s: _care.prepare(s),
+}
+
+
+def stream_query(patient_id: str, query: str) -> Iterator[str]:
+    """Yield SSE-formatted lines for a streaming query response."""
+    state: GraphState = {
+        "patient_id": patient_id,
+        "query": query,
+        "stage": None,
+        "patient_record": None,
+        "specialist_response": None,
+        "citations": [],
+        "final_response": None,
+    }
+
+    try:
+        state = classify_stage(state)
+    except Exception as exc:
+        yield f"data: {json.dumps({'type': 'error', 'message': str(exc)})}\n\n"
+        return
+
+    yield f"data: {json.dumps({'type': 'stage', 'stage': state['stage'].value})}\n\n"
+    state = load_patient(state)
+
+    try:
+        prompt, citations = _PREPARE_MAP[state["stage"]](state)
+    except Exception as exc:
+        yield f"data: {json.dumps({'type': 'error', 'message': str(exc)})}\n\n"
+        return
+
+    full_response = ""
+    try:
+        for chunk in get_llm().stream(prompt):
+            text = chunk.content
+            if text:
+                full_response += text
+                yield f"data: {json.dumps({'type': 'chunk', 'text': text})}\n\n"
+    except Exception as exc:
+        yield f"data: {json.dumps({'type': 'error', 'message': str(exc)})}\n\n"
+        return
+
+    state = {
+        **state,
+        "specialist_response": full_response,
+        "citations": citations,
+        "final_response": full_response,
+    }
+    try:
+        save_state(state)
+        audit_log(state)
+    except Exception:
+        pass  # persistence errors must not break the stream
+
+    done_payload = json.dumps({"type": "done", "citations": [c.model_dump() for c in citations]})
+    yield f"data: {done_payload}\n\n"
 
 
 def build_graph():

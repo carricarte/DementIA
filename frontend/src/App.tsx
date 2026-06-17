@@ -1,6 +1,6 @@
 import { useState, useCallback } from 'react'
 import type { PatientRecord, QueryResponse, VisitRecord } from './types'
-import { fetchPatient, submitQuery } from './api/client'
+import { fetchPatient, streamQuery } from './api/client'
 import VisitHistory from './components/VisitHistory'
 import QueryPanel from './components/QueryPanel'
 import PatientProfile from './components/PatientProfile'
@@ -12,6 +12,7 @@ export default function App() {
   const [response, setResponse] = useState<QueryResponse | null>(null)
   const [selectedVisit, setSelectedVisit] = useState<VisitRecord | null>(null)
   const [isLoading, setIsLoading] = useState(false)
+  const [isStreaming, setIsStreaming] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
   const loadPatient = useCallback(async (id: string) => {
@@ -20,12 +21,11 @@ export default function App() {
     setError(null)
     setResponse(null)
     setSelectedVisit(null)
-    setActiveId(trimmed)  // always transition to 3-panel layout
+    setActiveId(trimmed)
     try {
       const r = await fetchPatient(trimmed)
       setRecord(r)
     } catch (e) {
-      // 404 → new patient, record created on first query
       if (!(e instanceof Error && e.message.includes('404'))) {
         setError('Backend unreachable — start uvicorn to enable queries.')
       }
@@ -36,21 +36,34 @@ export default function App() {
   const handleQuery = async (query: string) => {
     if (!activeId) return
     setIsLoading(true)
+    setIsStreaming(false)
     setError(null)
     setSelectedVisit(null)
+    setResponse(null)
+
     try {
-      const res = await submitQuery({ patient_id: activeId, query })
-      setResponse(res)
-      // Refresh patient record to pick up the new visit + any state mutations
-      try {
-        setRecord(await fetchPatient(activeId))
-      } catch {
-        // non-fatal
-      }
+      await streamQuery(
+        { patient_id: activeId, query },
+        (stage) => {
+          setResponse({ patient_id: activeId, stage, response: '', citations: [] })
+        },
+        (text) => {
+          setIsLoading(false)
+          setIsStreaming(true)
+          setResponse(prev =>
+            prev ? { ...prev, response: prev.response + text } : null
+          )
+        },
+        (citations) => {
+          setIsStreaming(false)
+          setResponse(prev => (prev ? { ...prev, citations } : null))
+          fetchPatient(activeId).then(setRecord).catch(() => {})
+        },
+      )
     } catch (e) {
-      setError(e instanceof Error ? e.message : 'Query failed — is the backend running?')
-    } finally {
+      setIsStreaming(false)
       setIsLoading(false)
+      setError(e instanceof Error ? e.message : 'Query failed — is the backend running?')
     }
   }
 
@@ -107,6 +120,7 @@ export default function App() {
             <QueryPanel
               onQuery={handleQuery}
               isLoading={isLoading}
+              isStreaming={isStreaming}
               response={response}
               selectedVisit={selectedVisit}
               error={error}

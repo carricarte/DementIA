@@ -18,5 +18,5 @@ Your job:
 
 Guidelines:
 - Do not diagnose a dementia subtype — that is the diagnosis specialist's role
-- Cite every factual claim with [Source: title]
+- Cite every factual claim inline using the reference number from the retrieved evidence (e.g. [1], [2])
 - If the retrieved evidence does not cover part of the query, say so explicitly

@@ -1,10 +1,20 @@
 from fastapi import APIRouter, HTTPException
+from fastapi.responses import StreamingResponse
 
-from backend.agents.coordinator import coordinator
+from backend.agents.coordinator import coordinator, stream_query
 from backend.api.models import QueryRequest, QueryResponse
 from backend.state.schema import GraphState
 
 router = APIRouter()
+
+
+@router.post("/stream")
+def handle_query_stream(req: QueryRequest):
+    return StreamingResponse(
+        stream_query(req.patient_id, req.query),
+        media_type="text/event-stream",
+        headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"},
+    )
 
 
 @router.post("/", response_model=QueryResponse)
