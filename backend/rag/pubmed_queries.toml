@@ -1,0 +1,58 @@
+# PubMed search queries for the DCA knowledge base.
+# Each string is sent verbatim to the NCBI E-utilities esearch API.
+# Add, remove, or edit lines to control what gets ingested.
+# Run:  python scripts/ingest.py --source pubmed
+
+[settings]
+max_results_per_query = 100   # articles per query string (sorted by relevance)
+date_range_years      = 10    # restrict to articles published in the last N years
+
+[queries]
+
+screening = [
+    "cognitive screening tests dementia primary care",
+    "MMSE MoCA sensitivity specificity dementia diagnosis",
+    "mild cognitive impairment screening instruments",
+    "CDR Clinical Dementia Rating scale reliability validity",
+]
+
+diagnosis = [
+    "Alzheimer disease diagnosis NIA-AA criteria biomarkers",
+    "Lewy body dementia clinical diagnosis DLB criteria",
+    "frontotemporal dementia diagnosis clinical criteria",
+    "vascular dementia diagnosis neuroimaging criteria",
+    "dementia differential diagnosis CSF biomarkers amyloid tau",
+    "amyloid PET FDG PET tau PET dementia diagnosis",
+    "normal pressure hydrocephalus diagnosis treatment",
+    "rapidly progressive dementia Creutzfeldt-Jakob diagnosis",
+]
+
+prevention = [
+    "dementia prevention modifiable risk factors Lancet Commission",
+    "hypertension midlife dementia risk cognitive decline",
+    "physical activity exercise cognitive decline prevention",
+    "hearing loss dementia risk intervention",
+    "social engagement cognitive reserve dementia prevention",
+    "sleep apnea cognitive decline dementia risk",
+    "mild cognitive impairment conversion dementia prevention",
+]
+
+treatment = [
+    "cholinesterase inhibitors donepezil rivastigmine galantamine Alzheimer",
+    "memantine Alzheimer disease moderate severe treatment",
+    "lecanemab donanemab anti-amyloid therapy Alzheimer clinical trial",
+    "behavioral psychological symptoms dementia BPSD pharmacological treatment",
+    "non-pharmacological interventions behavioral symptoms dementia",
+    "Parkinson disease dementia rivastigmine treatment",
+    "Lewy body dementia pharmacological management",
+]
+
+care = [
+    "dementia care planning advance directives",
+    "caregiver burden dementia intervention support",
+    "driving cessation dementia safety",
+    "dementia wandering safety home assessment",
+    "nursing home placement dementia decision",
+    "palliative care end of life dementia",
+    "dementia caregiver education psychoeducation program",
+]

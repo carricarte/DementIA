@@ -3,12 +3,14 @@ Ingest documents into the DCA knowledge base (LanceDB).
 
 Usage:
     python scripts/ingest.py --source awmf
-    python scripts/ingest.py --source pubmed --query "dementia treatment"
+    python scripts/ingest.py --source pubmed
     python scripts/ingest.py --all
+    python scripts/ingest.py --source pubmed --drop   # drop & recreate table first
 
 Requires the [ingest,rag] optional dependencies:
     pip install -e ".[ingest,rag]"
 """
+
 from __future__ import annotations
 
 import argparse
@@ -23,26 +25,29 @@ SOURCES = ["pubmed", "clinicaltrials", "neurology", "alz", "aan", "awmf"]
 
 def fetch_awmf() -> list[Document]:
     from backend.rag.sources.awmf import fetch
+
     return fetch()
 
 
-def fetch_pubmed(query: str, max_results: int = 200) -> list[Document]:
-    raise NotImplementedError("PubMed fetcher not yet implemented")
+def fetch_pubmed() -> list[Document]:
+    from backend.rag.sources.pubmed import fetch
+
+    return fetch()
 
 
-def fetch_clinicaltrials(query: str, max_results: int = 100) -> list[Document]:
+def fetch_clinicaltrials() -> list[Document]:
     raise NotImplementedError("ClinicalTrials fetcher not yet implemented")
 
 
-def fetch_neurology(query: str) -> list[Document]:
+def fetch_neurology() -> list[Document]:
     raise NotImplementedError("Neurology.org fetcher not yet implemented")
 
 
-def fetch_alz(query: str) -> list[Document]:
+def fetch_alz() -> list[Document]:
     raise NotImplementedError("Alz.org fetcher not yet implemented")
 
 
-def fetch_aan(query: str) -> list[Document]:
+def fetch_aan() -> list[Document]:
     raise NotImplementedError("AAN.com fetcher not yet implemented")
 
 
@@ -50,7 +55,11 @@ def main() -> None:
     parser = argparse.ArgumentParser(description="Populate the DCA LanceDB knowledge base")
     parser.add_argument("--source", choices=SOURCES, help="Single source to ingest")
     parser.add_argument("--all", action="store_true", help="Ingest all sources")
-    parser.add_argument("--query", default="dementia", help="Search query for API-based sources")
+    parser.add_argument(
+        "--drop",
+        action="store_true",
+        help="Drop and recreate the LanceDB table before ingesting (use after schema changes)",
+    )
     args = parser.parse_args()
 
     if not args.all and not args.source:
@@ -59,6 +68,7 @@ def main() -> None:
 
     sources = SOURCES if args.all else [args.source]
     total = 0
+    drop_on_first = args.drop  # only drop once, on the first source
 
     for src in sources:
         print(f"\n[{src}] Fetching ...")
@@ -66,15 +76,15 @@ def main() -> None:
             if src == "awmf":
                 docs = fetch_awmf()
             elif src == "pubmed":
-                docs = fetch_pubmed(args.query)
+                docs = fetch_pubmed()
             elif src == "clinicaltrials":
-                docs = fetch_clinicaltrials(args.query)
+                docs = fetch_clinicaltrials()
             elif src == "neurology":
-                docs = fetch_neurology(args.query)
+                docs = fetch_neurology()
             elif src == "alz":
-                docs = fetch_alz(args.query)
+                docs = fetch_alz()
             elif src == "aan":
-                docs = fetch_aan(args.query)
+                docs = fetch_aan()
             else:
                 print(f"  {src}: no fetcher, skipping")
                 continue
@@ -84,7 +94,8 @@ def main() -> None:
                 continue
 
             print(f"  Embedding and storing {len(docs)} chunks ...")
-            n = ingest(docs)
+            n = ingest(docs, drop_existing=drop_on_first)
+            drop_on_first = False  # only drop on the first successful ingest
             print(f"  {src}: ingested {n} chunks")
             total += n
 
