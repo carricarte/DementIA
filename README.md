@@ -1,4 +1,4 @@
-# DementIA — AI-powered dementia clinical decision support
+# DementIA - AI-powered insight for dementia care
 
 A multi-agent clinical decision support system for dementia care. A coordinator classifies the query by clinical stage and routes it to the appropriate specialist agent. When patient data is provided, an analyzer agent first produces a structured clinical summary that the specialist uses as context.
 
