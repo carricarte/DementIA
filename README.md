@@ -14,18 +14,17 @@ user query
   patient data provided?
         │
     no  │  yes
-        ├─────────────────────────────────────────┐
-        │                                         │
-        ▼                                         ▼
-  specialist (by stage)                   analyze patient data
-  retrieve clinical evidence              → structured clinical summary
-        │                                         │
-        │                                         ▼
-        │                               retrieve clinical evidence
-        │                               synthesize personalized response
-        └──────────────────┬─────────────────────┘
-                           │
-                     response + references
+        │          ▼
+        │    analyze patient data
+        │    → clinical summary
+        │          │
+        ▼          ▼
+     specialist (by stage)
+     retrieve clinical evidence
+        │
+        ▼
+  response + references
+  (patient-specific if patient data provided)
 ```
 
 **SSE stream events:**
