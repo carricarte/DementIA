@@ -8,19 +8,21 @@ A multi-agent clinical decision support system for dementia care. A coordinator 
 user query
         │
         ▼
-  classify stage     screening / diagnosis / prevention / treatment / care
+  coordinator                routes to: screening / diagnosis /
+  (classifies stage)                    prevention / treatment / care
         │
         ▼
   patient data provided?
         │
     no  │  yes
         │          ▼
-        │    analyze patient data
+        │    analyzer agent
         │    → clinical summary
         │          │
         ▼          ▼
-     specialist (by stage)
-     retrieve clinical evidence
+  specialist agent (by stage)
+  retrieve clinical evidence
+  generate response
         │
         ▼
   response + references
