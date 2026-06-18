@@ -19,17 +19,13 @@ user query
         ▼                                         ▼
   specialist (by stage)                   analyze patient data
   retrieve clinical evidence              → structured clinical summary
-  generate response                                │
+        │                                         │
         │                                         ▼
         │                               retrieve clinical evidence
         │                               synthesize personalized response
         └──────────────────┬─────────────────────┘
                            │
-                     update patient record
-                           │
-                       audit log
-                           │
-                          END
+                     response + references
 ```
 
 **SSE stream events:**
