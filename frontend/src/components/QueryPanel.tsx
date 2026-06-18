@@ -8,12 +8,13 @@ interface Props {
   onQuery: (query: string) => Promise<void>
   isLoading: boolean
   isStreaming: boolean
+  queryIntent: string | null
   response: QueryResponse | null
   selectedVisit: VisitRecord | null
   error: string | null
 }
 
-export default function QueryPanel({ onQuery, isLoading, isStreaming, response, selectedVisit, error }: Props) {
+export default function QueryPanel({ onQuery, isLoading, isStreaming, queryIntent, response, selectedVisit, error }: Props) {
   const [query, setQuery] = useState('')
 
   const handleSubmit = async () => {
@@ -53,6 +54,12 @@ export default function QueryPanel({ onQuery, isLoading, isStreaming, response, 
                 <div className="h-3 bg-slate-100 rounded w-full" />
                 <div className="h-3 bg-slate-100 rounded w-3/5" />
               </div>
+              {queryIntent === 'patient_specific' && (
+                <p className="mt-4 text-xs text-blue-500 flex items-center gap-1.5">
+                  <span className="inline-block w-1.5 h-1.5 rounded-full bg-blue-400 animate-pulse" />
+                  Analyzing patient record…
+                </p>
+              )}
             </div>
           )}
 
@@ -60,7 +67,14 @@ export default function QueryPanel({ onQuery, isLoading, isStreaming, response, 
           {(isStreaming || (!isLoading && displayed)) && displayed && (
             <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-6">
               <div className="flex items-center justify-between mb-4">
-                <StageBadge stage={displayed.stage} />
+                <div className="flex items-center gap-2">
+                  <StageBadge stage={displayed.stage} />
+                  {!selectedVisit && response?.personalized && (
+                    <span className="text-xs font-medium text-blue-600 bg-blue-50 border border-blue-200 rounded px-2 py-0.5">
+                      Personalized
+                    </span>
+                  )}
+                </div>
                 {selectedVisit && (
                   <span className="text-xs text-slate-400 italic">
                     Visit · {new Date(selectedVisit.timestamp).toLocaleDateString()}
@@ -116,7 +130,7 @@ export default function QueryPanel({ onQuery, isLoading, isStreaming, response, 
             <textarea
               className="w-full resize-none text-sm text-slate-800 placeholder-slate-400 focus:outline-none leading-relaxed"
               rows={3}
-              placeholder="Type your clinical question… (e.g. MoCA 21/30, what workup next?)"
+              placeholder="Type your clinical question…"
               value={query}
               onChange={(e) => setQuery(e.target.value)}
               onKeyDown={(e) => {
