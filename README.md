@@ -8,28 +8,30 @@ A multi-agent clinical decision support system for dementia care. A coordinator 
 POST /query  or  POST /query/stream
         │
         ▼
-  classify_stage          LLM → ClinicalStage (screening / diagnosis /
-        │                        prevention / treatment / care)
+  classify_stage     LLM → screening / diagnosis / prevention / treatment / care
         │
-        │  patient_id provided?
-   ┌────┴────────────────────────────────────┐
-   │ no  (general)            yes (patient-specific)
-   ▼                                         ▼
-specialist (by stage)      Analyzer Agent
-  ┌──────┬───────┬──────┬──────┬──────┐     reads PatientStore + NACC UDS CSVs
-  │Screen│ Diag. │Prev. │Treat.│ Care │     → PatientStatusReport (structured JSON)
-  └──────┴───────┴──────┴──────┴──────┘              │
-  retrieve KB, stream response                        ▼
-            │                          synthesize_patient_specific
-            │                          KB evidence + PatientStatusReport
-            │                          stream personalized response
-            └──────────────┬───────────────────────────┘
-                           ▼
+        ▼
+  patient_id provided?
+        │
+    no  │  yes
+        ├──────────────────────────────────────────┐
+        │                                          │
+        ▼                                          ▼
+  specialist (by stage)                    Analyzer Agent
+  ┌────────┬──────────┬──────────┬──────┐  reads PatientStore + NACC UDS CSVs
+  │Screening│Diagnosis│Prevention│ ...  │  → PatientStatusReport
+  └────────┴──────────┴──────────┴──────┘          │
+  retrieve KB                                       ▼
+  stream response                     synthesize: KB evidence
+        │                             + PatientStatusReport
+        │                             stream personalized response
+        └──────────────────┬──────────────────────┘
+                           │
                      merge_output
                            │
-                     save_state         append VisitRecord to PatientRecord JSON
-                           │             (no-op when no patient_id)
-                      audit_log         append-only JSONL
+                     save_state      append VisitRecord to PatientRecord JSON
+                           │
+                      audit_log      append-only JSONL
                            │
                           END
 ```
