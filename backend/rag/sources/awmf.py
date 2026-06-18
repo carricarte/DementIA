@@ -35,7 +35,7 @@ _UA = "DementIA-Research-Bot/1.0 (academic dementia research)"
 _DEFAULT_DIR = Path("data/sources/awmf")
 
 # Document types to ingest from the API links list (in preference order)
-_INGEST_TYPES = {"longVersion"}
+_INGEST_TYPES = {"longVersion", "guidelineReport", "patientGuideline"}
 
 
 # ---------------------------------------------------------------------------
@@ -153,8 +153,7 @@ def fetch(sources_dir: Path | None = None) -> list[Document]:
 
     for register_num, default_title in AWMF_TARGETS.items():
         print(f"\n  AWMF {register_num}")
-        guide_dir = root / register_num
-        guide_dir.mkdir(parents=True, exist_ok=True)
+        guide_dir = root
 
         # 1. Fetch guideline metadata from the AWMF REST API
         try:
