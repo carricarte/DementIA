@@ -5,29 +5,32 @@ A multi-agent clinical decision support system for dementia care. A coordinator 
 ## Architecture
 
 ```
-user query
-        │
-        ▼
-  coordinator
-  (classifies stage)
-        │
-        ▼
-  patient data provided?
-        │
-    no  │  yes
-        │          ▼
-        │    analyzer agent
-        │    reads patient record
-        │    → clinical summary
-        │          │
-        ▼          ▼
-  specialist agent (by stage)
-  retrieve clinical evidence
-  generate grounded response
-        │
-        ▼
-  response + references
-  (patient-specific when patient data provided)
+          user query
+               │
+               ▼
+     coordinator agent
+     classifies clinical stage
+               │
+               ▼
+     patient data provided?
+          │         │
+         no        yes
+          │         │
+          │         ▼
+          │   analyzer agent
+          │   reads patient record
+          │   produces clinical summary
+          │         │
+          └────┬────┘
+               │
+               ▼
+     specialist agent (by stage)
+     retrieve clinical evidence
+     generate grounded response
+               │
+               ▼
+     response + references
+     (patient-specific when patient data provided)
 ```
 
 **SSE stream events:**
