@@ -44,7 +44,9 @@ def fetch_neurology() -> list[Document]:
 
 
 def fetch_alz() -> list[Document]:
-    raise NotImplementedError("Alz.org fetcher not yet implemented")
+    from backend.rag.sources.alz import fetch
+
+    return fetch()
 
 
 def fetch_aan() -> list[Document]:
